@@ -4,10 +4,11 @@ import altair as alt
 
 def loadData():
     # Load the data about cuisines from the remote server
-    #site = "https://raw.githubusercontent.com/hvo/datasets/master/"
-    #cuis_url = site + "nyc_restaurants_by_cuisine.json"
+    site = "https://raw.githubusercontent.com/hvo/datasets/master/"
+    cuis_url = site + "nyc_restaurants_by_cuisine.json"
     cuis_file = "nyc_restaurants_by_cuisine.json"
-    fh = open(cuis_file, 'r')
+    #fh = open(cuis_file, 'r')
+    fh = urllib.urlopen(cuis_url)
     js = fh.readline()
     # Data comes in the form of an array where each element is of the form
     # {"cuisine": <cuisine name>, "perZip": {<zip0>:<count0>, <zip1>:<count1>, ...}}
@@ -58,3 +59,4 @@ def createChart(data):
                    alt.ColorValue("LightGrey"),
                )
     return barCount
+
