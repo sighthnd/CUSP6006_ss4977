@@ -14,7 +14,7 @@ Released under the MIT license: http://jsbin.mit-license.org
   <title>Restaurants in Zip Code by Cuisine</title>
   <script src="https://fb.me/react-with-addons-15.1.0.js"></script>
   <script src="https://fb.me/react-dom-15.1.0.js"></script>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/vega@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@3"></script>
@@ -22,6 +22,7 @@ Released under the MIT license: http://jsbin.mit-license.org
 </head>
 <body>
   <div id="ui"></div>
+  <div id="txtval"></div>
   <div id="vis"></div>
 <script type="text/babel">
 /*******************************************************************
@@ -70,7 +71,9 @@ class AppSelectingForm extends React.Component {
   // with the simple visualization in Part 1 of Lab 7. However,
   // this URL can be dynamically set based on the parameters.
   handleSubmit(event) {
-    var spec = `/viz/${this.state.zipcode}`;
+    //let showZip = getElementById("txtval");
+    //showZip.innerHTML = `${this.state.zipcode}`
+    var spec = `/vis/${this.state.zipcode}`;
     vegaEmbed('#vis', spec, {actions:false});
     event.preventDefault();
   }
@@ -89,10 +92,10 @@ class AppSelectingForm extends React.Component {
     return (
       <form onSubmit={this.handleSubmit}>
         <label>
-          Zip Code &nbsp; 
-          &nbsp; &nbsp; 
+          Zip Code &nbsp;
+          &nbsp; &nbsp;
         </label>
-        <input type="text" name="zipcode" />
+        <input type="text" name="zipcode" onChange={this.handleChange} />
         &nbsp; &nbsp;
         <input type="submit" value="Update" />
       </form>
