@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://fb.me/react-with-addons-15.1.0.js"></script>
+  <script src="https://fb.me/react-dom-15.1.0.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@3"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/d3/4.2.3/d3.min.js">
+    </script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <title>For the love of dog</title>
+</head>
+<body>
+  <div id="ui">
+    <h1><center>Market for canine goods and services</center></h1>
+    
+  </div>
+    <div id="vis">
+      <svg id="mapspace" width="1000" height="1000"></svg>
+    </div>
+
+<div id="vis"></div>
+
+<script type="text/babel">
+  class GeoSelector extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = {
+        geoType: 'bor',
+        borough: 'full,
+        boroughSub: 'full
+        showTracts: 'no'
+      };
+      this.handleChange = this.handleChange.bind(this);
+      this.handleSubmit = this.handleSubmit.bind(this);
+    }
+
+  handleChange(event) {
+    this.setState({
+      [event.target.name]: event.target.value
+    });
+  }
+
+  initSub(event) {
+    this.setState({["subarea"]: "full"});
+    let cont = getElementById("selSubarea");
+    while (cont.size > 1) {
+      cont.remove(1);
+    }
+    if (this.state.borough === "full") {
+      cont.disabled = true;
+    } else {
+      cont.disable = false;
+      let optlist = `/vis/dogs/list-${this.state.subarea}-${this.state.borough}`;
+      optlist.map(function (d) {
+        let addopt = createElement("option");
+        addopt.value = d;
+        addopt.text = d;
+        cont.add(addopt);
+      });
+    }
+    this.toggleTracts;
+  }
+
+  toggleTracts(event) {
+    let cont = getElementById("enableTracts");
+    if (this.state.boroughSub === "full") {
+      cont.disabled = true;
+    } else {
+      cont.disabled = false;
+    }
+    this.setState({["tractson"]: "no"});
+  }
+
+  initBor(event) {
+    this.setState({["borough"]: "full"});
+    this.initSub;
+  }
+  
+  render() {
+    var boards = {"manh":12, "bronx":15, "brook":18, "queens":14, "staten":3};
+    return (
+      <form onSubmit={this.handleSubmit}>
+        <label>
+          Select Geography &nbsp; <br />
+          Geography type &nbsp; 
+          <select 
+            name="geoType"
+            value={this.state.geoType} 
+             onChange={this.handleChange; this.initBor;}>
+            <option value="bor">Borough</option>
+            <option value="comm">Community District</option>
+	    <option value="nta">Neighborhood</option>
+          </select>
+          &nbsp; &nbsp;
+	  <select
+	     name="subarea" id="selSubarea"
+	     disabled=true
+	     value={this.state.boroughSub}
+	     onChange={this.handleChange; this.toggleTracts}>
+	    <option value="full">Full borough</option>
+	  </select><br />
+          Borough &nbsp; 
+	  <select
+	     name="borough"
+	     value={this.state.borough}
+	     onChange={this.handleChange; this.initSub}>
+	    <option value="full">Full city</option>
+	    <option value="Manhattan">Manhattan</option>
+	    <option value="Bronx">Bronx</option>
+	    <option value="Brooklyn">Brooklyn</option>
+	    <option value="Queens">Queens</option>
+	    <option value="Staten Island">Staten Island</option>
+	  </select>
+	  &nbsp; &nbsp;
+	  Show Tracts &nbsp;
+	  <select
+	     name="tractson" id="enableTracts"
+	     value=this.state.tractson
+	     onChange={this.handleChange}>
+	    <option value="tractno">No</option>
+	    <option value="tractyes">Yes</option>
+	  </select>
+          &nbsp; &nbsp; 
+        </label>
+        <input type="submit" value="Update" />
+      </form>
+    );
+  }
+}
+      
+ReactDOM.render(
+  <div>
+    <GeoSelector />
+  </div>,
+  document.getElementById('ui')
+);
+</script>
+</body>
+</html>
