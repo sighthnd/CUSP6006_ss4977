@@ -13,8 +13,8 @@
     <title>For the love of dog</title>
 </head>
 <body>
-  <div id="ui">
     <h1><center>Market for canine goods and services</center></h1>
+  <div id="ui">
     
   </div>
     <div id="vis">
@@ -28,13 +28,14 @@
     constructor(props) {
       super(props);
       this.state = {
-        geoType: 'bor',
-        borough: 'full,
-        boroughSub: 'full
+        geoType: 'nta',
+        borough: 'Manhattan',
+        boroughSub: 'full',
         showTracts: 'no'
       };
       this.handleChange = this.handleChange.bind(this);
       this.handleSubmit = this.handleSubmit.bind(this);
+      this.initSub;
     }
 
   handleChange(event) {
@@ -43,7 +44,17 @@
     });
   }
 
+  handleSubmit(event) {
+    let spec = `/makemap/${this.state.geoType}/${this.state.borough}/` +
+               `${this.state.boroughSub}/${this.state.showTracts}`
+    spec = `http://localhost:8002${spec}`
+    d3.json(spec, function (dat) {
+      console.log('got map');
+    });
+  }
+  
   initSub(event) {
+    this.handleChange();
     this.setState({["subarea"]: "full"});
     let cont = getElementById("selSubarea");
     while (cont.size > 1) {
@@ -53,18 +64,28 @@
       cont.disabled = true;
     } else {
       cont.disable = false;
-      let optlist = `/vis/dogs/list-${this.state.subarea}-${this.state.borough}`;
-      optlist.map(function (d) {
-        let addopt = createElement("option");
-        addopt.value = d;
-        addopt.text = d;
-        cont.add(addopt);
+      let optlist = '';
+      if (this.state.subarea === 'nta') {
+        optlist = `/listhoods/${this.state.borough}`
+      } else {
+        optlist = `/listcomms/${this.state.borough}`;
+      }
+      optlist = `http://localhost:8002${optlist}`;
+      console.log(optlist);
+      d3.json(optlist, function (dat) {
+        dat.map(function (opt) {
+          let addopt = createElement("option");
+          addopt.value = opt;
+          addopt.text = opt;
+          cont.add(addopt);
+        });
       });
+      this.toggleTracts();
     }
-    this.toggleTracts;
   }
-
+  
   toggleTracts(event) {
+    this.handleChange();
     let cont = getElementById("enableTracts");
     if (this.state.boroughSub === "full") {
       cont.disabled = true;
@@ -75,8 +96,9 @@
   }
 
   initBor(event) {
-    this.setState({["borough"]: "full"});
-    this.initSub;
+    this.handleChange();
+    this.setState({borough: "full"});
+    this.initSub();
   }
   
   render() {
@@ -87,26 +109,26 @@
           Select Geography &nbsp; <br />
           Geography type &nbsp; 
           <select 
-            name="geoType"
+            name="geoType" disabled="true"
             value={this.state.geoType} 
-             onChange={this.handleChange; this.initBor;}>
+             onChange={this.initBor}>
             <option value="bor">Borough</option>
             <option value="comm">Community District</option>
 	    <option value="nta">Neighborhood</option>
           </select>
           &nbsp; &nbsp;
+	  District/Hood &nbsp;
 	  <select
-	     name="subarea" id="selSubarea"
-	     disabled=true
+	     name="subarea"
 	     value={this.state.boroughSub}
-	     onChange={this.handleChange; this.toggleTracts}>
+	     onChange={this.toggleTracts}>
 	    <option value="full">Full borough</option>
 	  </select><br />
           Borough &nbsp; 
 	  <select
-	     name="borough"
+	     name="borough" disabled="true"
 	     value={this.state.borough}
-	     onChange={this.handleChange; this.initSub}>
+	     onChange={this.initSub}>
 	    <option value="full">Full city</option>
 	    <option value="Manhattan">Manhattan</option>
 	    <option value="Bronx">Bronx</option>
@@ -117,8 +139,8 @@
 	  &nbsp; &nbsp;
 	  Show Tracts &nbsp;
 	  <select
-	     name="tractson" id="enableTracts"
-	     value=this.state.tractson
+	     name="tractson" disabled="true"
+	     value={this.state.tractson}
 	     onChange={this.handleChange}>
 	    <option value="tractno">No</option>
 	    <option value="tractyes">Yes</option>
