@@ -24,6 +24,8 @@
 <div id="vis"></div>
 
 <script type="text/babel">
+  // One change for when moving between local machine and PythonAnywhere
+  const urlHead = "http://localhost:8002";
 function generateMap(dat) {
   let bbox = dat[0];
   let geodat = dat[1];
@@ -98,9 +100,8 @@ implemented, so must set scale/position manually
   }
 
   handleSubmit(event) {
-    let spec = `/makemap/${this.state.geoType}/${this.state.borough}/` +
+    let spec = `${urlHead}/makemap/${this.state.geoType}/${this.state.borough}/` +
                `${this.state.boroughSub}/${this.state.showTracts}`
-spec = `http://localhost:8002${spec}`
 d3.json(spec, function (dat) {generateMap(dat);});
 console.log(spec);
 event.preventDefault();
@@ -128,7 +129,7 @@ event.preventDefault();
       } else {
         optlist = `/listcomms/${borVal}`;
       }
-      optlist = `http://localhost:8002${optlist}`;
+      optlist = `${urlHead}${optlist}`;
       d3.json(optlist, function (dat) {
         dat.map(function (opt) {
           let addopt = document.createElement("option");
