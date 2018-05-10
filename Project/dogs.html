@@ -27,30 +27,37 @@
 function generateMap(dat) {
   let bbox = dat[0];
   let geodat = dat[1];
-  let mspc = document.getElementById('mapspace');
-  mspc.selectAll(".geo").remove();
-  mspc.selectAll(".rect").remove();
+  let mspc = d3.select("#mapspace");
+  d3.selectAll(".geo").remove();
+  d3.selectAll(".rect").remove();
 
-  let grp = mspc.append("g").attr("transform", "translate(150, 0)");
-  let canvSz = [800, 800];
+  let grp = mspc.append("g")
+    .attr("transform", "translate(150, 0)");
+  let canvSz = [600, 600];
   grp.append("rect")
     .attr("x", 0).attr("y", 0)
     .attr("width", canvSz[0])
     .attr("height", canvSz[1])
-    .attr("fill", "none").attr("stroke", "black");
+    .attr("fill", "none").attr("stroke", "black"); console.log('map box');
   let proj = d3.geoMercator()
+    .scale(50 * canvSz[0] / (bbox[2] - bbox[0]))
+    .translate([canvSz[0]/2, canvSz[1]/2])
+    .center([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
+    .clipExtent([0, 0], [canvSz[0], canvSz[1]]);
+/* I wish I could use these, but the functionality doesn't seem to be
+implemented, so must set scale/position manually
     .preclip(d3.geoClipRectangle(bbox[0], bbox[1], bbox[2], bbox[3]))
-    .fitSize([canvSz[0], canvSz[1]], geodat);
+    .fitSize([canvSz[0], canvSz[1]], geodat); */
   let path = d3.geoPath()
     .projection(proj);
-  let color = colorRng.domain(colorDom);
+  let color = colorRng.domain(colorDom); console.log('projection');
   grp.selectAll(".geo")
     .data(geodat.features)
     .enter().append("path")
       .attr("class", "geo")
       .attr("d", path)
       .style("stroke", "grey")
-      .style("fill", d => color(d.properties.numdogs));
+      .style("fill", d => color(d.properties.numdogs)); console.log('done');
   if (dat.length === 3) {
     grp.selectAll(".geo")
       .data(dat[2].features)
@@ -64,28 +71,13 @@ function generateMap(dat) {
   var maxDogs = {'bor': 41661, 'comm': 7535, 'nta': 4990, 'tract': 1096};
   var colorRng = d3.scaleThreshold()
     .range(d3.schemeBlues[8]);
-  var colorDom = d3.range(0, maxDogs['bor'], maxDogs['bor']/8);
-  var mhoods = ['Battery Park City-Lower Manhattan',
-      'Central Harlem North-Polo Grounds',
-      'Central Harlem South', 'Chinatown', 'Clinton',
-      'East Harlem North', 'East Harlem South', 'East Village',
-      'Gramercy', 'Hamilton Heights',
-      'Hudson Yards-Chelsea-Flatiron-Union Square',
-      'Lenox Hill-Roosevelt Island', 'Lincoln Square',
-      'Lower East Side', 'Manhattanville', 'Marble Hill-Inwood',
-      'Midtown-Midtown South', 'Morningside Heights',
-      'Murray Hill-Kips Bay',
-      'SoHo-TriBeCa-Civic Center-Little Italy',
-      'Stuyvesant Town-Cooper Village', 'Turtle Bay-East Midtown',
-      'Upper East Side-Carnegie Hill', 'Upper West Side',
-      'Washington Heights North', 'Washington Heights South',
-      'West Village', 'Yorkville'];
+  var colorDom = d3.range(0, maxDogs['nta'], maxDogs['nta']/8);
   class GeoSelector extends React.Component {
     constructor(props) {
       super(props);
       this.state = {
         geoType: 'nta',
-        borough: 'Manhattan',
+        borough: 'full',
         boroughSub: 'full',
         showTracts: 'no'
       };
@@ -108,36 +100,38 @@ function generateMap(dat) {
   handleSubmit(event) {
     let spec = `/makemap/${this.state.geoType}/${this.state.borough}/` +
                `${this.state.boroughSub}/${this.state.showTracts}`
-    spec = `http://localhost:8002${spec}`
-    d3.json(spec, function (dat) {
-      console.log('got map');
-      generateMap(dat);
-    });
+spec = `http://localhost:8002${spec}`
+d3.json(spec, function (dat) {generateMap(dat);});
+console.log(spec);
+event.preventDefault();
   }
   
   initSub(event) {
     //this.handleChange();
-    this.setState({["borough"]: event.target.value});
     this.setState({["subarea"]: "full"});
-    let cont = document.getElementByName("subarea");
-    while (cont.size > 1) {
-      cont.remove(1);
+    if (event.target.name === 'borough') {
+      this.setState({["borough"]: event.target.value});
     }
-    if (this.state.borough === "full") {
+    let borVal = event.target.name === 'borough' ?
+    event.target.value : this.state.borough;
+    let cont = document.getElementById("selSubarea");
+    while (cont.options.length > 1) {
+      cont.options.remove(1);
+    }
+    if (borVal === "full") {
       cont.disabled = true;
     } else {
       cont.disabled = false;
       let optlist = '';
       if (this.state.geoType === 'nta') {
-        optlist = `/listhoods/${this.state.borough}`
+        optlist = `/listhoods/${borVal}`
       } else {
-        optlist = `/listcomms/${this.state.borough}`;
+        optlist = `/listcomms/${borVal}`;
       }
       optlist = `http://localhost:8002${optlist}`;
-      console.log(optlist);
       d3.json(optlist, function (dat) {
         dat.map(function (opt) {
-          let addopt = createElement("option");
+          let addopt = document.createElement("option");
           addopt.value = opt;
           addopt.text = opt;
           cont.add(addopt);
@@ -148,9 +142,8 @@ function generateMap(dat) {
   }
 
   actSubarea(event) {
-    console.log(event.target.value);
-    this.setState({["boroughSub"]: event.target.value});
-    console.log(this.state.boroughSub);
+    this.handleChange();
+    this.setState({"boroughSub": event.target.value});
     this.toggleTracts(event);
   }
   
@@ -192,14 +185,14 @@ function generateMap(dat) {
           &nbsp; &nbsp;
 	  District/Hood &nbsp;
 	  <select
-	     name="subarea" id="selSubarea"
+	     name="subarea" id="selSubarea" disabled="true"
 	     value={this.state.boroughSub}
-	     onChange={this.toggleTracts}>
+	     onChange={this.actSubarea}>
 	    <option value="full">Full borough</option>
 	  </select><br />
           Borough &nbsp; 
 	  <select
-	     name="borough" disabled="true"
+	     name="borough"
 	     value={this.state.borough}
 	     onChange={this.initSub}>
 	    <option value="full">Full city</option>
@@ -209,7 +202,7 @@ function generateMap(dat) {
 	    <option value="Queens">Queens</option>
 	    <option value="Staten Island">Staten Island</option>
 	  </select>
-	  &nbsp; &nbsp;
+	  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
 	  Show Tracts &nbsp;
 	  <select
 	     name="tractson" disabled="true" id="selTracts"
@@ -218,9 +211,9 @@ function generateMap(dat) {
 	    <option value="tractno">No</option>
 	    <option value="tractyes">Yes</option>
 	  </select>
-          &nbsp; &nbsp; 
+          &nbsp; &nbsp; &nbsp; &nbsp;
         </label>
-        <input type="submit" value="Update" />
+        <input type="submit" value="Draw" />
       </form>
     );
   }
@@ -232,13 +225,6 @@ ReactDOM.render(
   </div>,
   document.getElementById('ui')
 );
-  var cont = document.getElementById('selSubarea');
-  mhoods.map(function (d) {
-    let addopt = document.createElement("option");
-    addopt.value = d;
-    addopt.text = d;
-    cont.add(addopt);  
-  });
 </script>
 </body>
 </html>
