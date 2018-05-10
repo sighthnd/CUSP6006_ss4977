@@ -35,6 +35,8 @@ Choropleth map of selected geographic layers showing number of dogs licensed in 
 * If a neighborhood or district is selected, whether or not to show tract level data
 
 #### Initially
-* Set the level as neighborhood and the borough of Manhattan
+* Have geographic level fixed at neighborhood
+* Select full city or one of the boroughs
+* Select one of the neighborhoods in the selected borough
 * Select either all of Manhattan or one Manhattan neighborhood
 * Possibly implement tracts option
