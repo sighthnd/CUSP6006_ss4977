@@ -100,3 +100,21 @@ def selectHoodByExt(minx, miny, maxx, maxy):
     if res > 0:
         df_sel.geometry = df_sel.geometry.simplify(res)
     return df_sel
+
+def getHoods():
+    minx = dfs['NTA'].minx.min()
+    miny = dfs['NTA'].miny.min()
+    maxx = dfs['NTA'].maxx.max()
+    maxy = dfs['NTA'].maxy.max()
+    xsize = maxx - minx
+    ysize = maxy - miny
+    if xsize > ysize:
+        miny -= (xsize - ysize) / 2
+        maxy += (xsize - ysize) / 2
+    else:
+        minx -= (ysize - xsize) / 2
+        maxx += (ysize - xsize) / 2
+    ret = dfs['NTA']
+    resol = get_nres(ret)
+    ret.geometry = dfs['NTA'].geometry.simplify(resol)
+    return ret, [minx, miny, maxx, maxy]
