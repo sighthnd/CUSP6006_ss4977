@@ -24,6 +24,62 @@
 <div id="vis"></div>
 
 <script type="text/babel">
+function generateMap(dat) {
+  let bbox = dat[0];
+  let geodat = dat[1];
+  let mspc = document.getElementById('mapspace');
+  mspc.selectAll(".geo").remove();
+  mspc.selectAll(".rect").remove();
+
+  let grp = mspc.append("g").attr("transform", "translate(150, 0)");
+  let canvSz = [800, 800];
+  grp.append("rect")
+    .attr("x", 0).attr("y", 0)
+    .attr("width", canvSz[0])
+    .attr("height", canvSz[1])
+    .attr("fill", "none").attr("stroke", "black");
+  let proj = d3.geoMercator()
+    .preclip(d3.geoClipRectangle(bbox[0], bbox[1], bbox[2], bbox[3]))
+    .fitSize([canvSz[0], canvSz[1]], geodat);
+  let path = d3.geoPath()
+    .projection(proj);
+  let color = colorRng.domain(colorDom);
+  grp.selectAll(".geo")
+    .data(geodat.features)
+    .enter().append("path")
+      .attr("class", "geo")
+      .attr("d", path)
+      .style("stroke", "grey")
+      .style("fill", d => color(d.properties.numdogs));
+  if (dat.length === 3) {
+    grp.selectAll(".geo")
+      .data(dat[2].features)
+      .enter().append("path")
+        .attr("class", "geo")
+        .attr("d", path)
+        .style("stroke", "red")
+        .style("fill", "none");
+  }
+}
+  var maxDogs = {'bor': 41661, 'comm': 7535, 'nta': 4990, 'tract': 1096};
+  var colorRng = d3.scaleThreshold()
+    .range(d3.schemeBlues[8]);
+  var colorDom = d3.range(0, maxDogs['bor'], maxDogs['bor']/8);
+  var mhoods = ['Battery Park City-Lower Manhattan',
+      'Central Harlem North-Polo Grounds',
+      'Central Harlem South', 'Chinatown', 'Clinton',
+      'East Harlem North', 'East Harlem South', 'East Village',
+      'Gramercy', 'Hamilton Heights',
+      'Hudson Yards-Chelsea-Flatiron-Union Square',
+      'Lenox Hill-Roosevelt Island', 'Lincoln Square',
+      'Lower East Side', 'Manhattanville', 'Marble Hill-Inwood',
+      'Midtown-Midtown South', 'Morningside Heights',
+      'Murray Hill-Kips Bay',
+      'SoHo-TriBeCa-Civic Center-Little Italy',
+      'Stuyvesant Town-Cooper Village', 'Turtle Bay-East Midtown',
+      'Upper East Side-Carnegie Hill', 'Upper West Side',
+      'Washington Heights North', 'Washington Heights South',
+      'West Village', 'Yorkville'];
   class GeoSelector extends React.Component {
     constructor(props) {
       super(props);
@@ -35,13 +91,18 @@
       };
       this.handleChange = this.handleChange.bind(this);
       this.handleSubmit = this.handleSubmit.bind(this);
-      this.initSub;
+      this.initBor = this.initBor.bind(this);
+      this.actSubarea = this.actSubarea.bind(this);
+      this.toggleTracts = this.toggleTracts.bind(this);
+      this.initSub = this.initSub.bind(this);
     }
 
   handleChange(event) {
-    this.setState({
-      [event.target.name]: event.target.value
-    });
+    if (this.hasOwnProperty('target')) {
+      this.setState({
+        [event.target.name]: event.target.value
+      });
+    }
   }
 
   handleSubmit(event) {
@@ -50,22 +111,24 @@
     spec = `http://localhost:8002${spec}`
     d3.json(spec, function (dat) {
       console.log('got map');
+      generateMap(dat);
     });
   }
   
   initSub(event) {
-    this.handleChange();
+    //this.handleChange();
+    this.setState({["borough"]: event.target.value});
     this.setState({["subarea"]: "full"});
-    let cont = getElementById("selSubarea");
+    let cont = document.getElementByName("subarea");
     while (cont.size > 1) {
       cont.remove(1);
     }
     if (this.state.borough === "full") {
       cont.disabled = true;
     } else {
-      cont.disable = false;
+      cont.disabled = false;
       let optlist = '';
-      if (this.state.subarea === 'nta') {
+      if (this.state.geoType === 'nta') {
         optlist = `/listhoods/${this.state.borough}`
       } else {
         optlist = `/listcomms/${this.state.borough}`;
@@ -83,10 +146,17 @@
       this.toggleTracts();
     }
   }
+
+  actSubarea(event) {
+    console.log(event.target.value);
+    this.setState({["boroughSub"]: event.target.value});
+    console.log(this.state.boroughSub);
+    this.toggleTracts(event);
+  }
   
   toggleTracts(event) {
-    this.handleChange();
-    let cont = getElementById("enableTracts");
+  //this.handleChange();
+    let cont = document.getElementById("selTracts");
     if (this.state.boroughSub === "full") {
       cont.disabled = true;
     } else {
@@ -96,8 +166,11 @@
   }
 
   initBor(event) {
-    this.handleChange();
-    this.setState({borough: "full"});
+  //    this.handleChange();
+    this.setState({["initBor"]: event.target.value});
+    this.setState({["borough"]: "full"});
+    colorDom = d3.range(0, maxDogs[this.state.initBor],
+        maxDogs[this.state.initBor]/8);
     this.initSub();
   }
   
@@ -119,7 +192,7 @@
           &nbsp; &nbsp;
 	  District/Hood &nbsp;
 	  <select
-	     name="subarea"
+	     name="subarea" id="selSubarea"
 	     value={this.state.boroughSub}
 	     onChange={this.toggleTracts}>
 	    <option value="full">Full borough</option>
@@ -139,7 +212,7 @@
 	  &nbsp; &nbsp;
 	  Show Tracts &nbsp;
 	  <select
-	     name="tractson" disabled="true"
+	     name="tractson" disabled="true" id="selTracts"
 	     value={this.state.tractson}
 	     onChange={this.handleChange}>
 	    <option value="tractno">No</option>
@@ -159,6 +232,13 @@ ReactDOM.render(
   </div>,
   document.getElementById('ui')
 );
+  var cont = document.getElementById('selSubarea');
+  mhoods.map(function (d) {
+    let addopt = document.createElement("option");
+    addopt.value = d;
+    addopt.text = d;
+    cont.add(addopt);  
+  });
 </script>
 </body>
 </html>
