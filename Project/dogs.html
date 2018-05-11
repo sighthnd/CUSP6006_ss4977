@@ -26,7 +26,128 @@
 <script type="text/babel">
   // One change for when moving between local machine and PythonAnywhere
   const urlHead = "http://localhost:8002";
-function generateMap(dat) {
+
+  function logPCoords (poly, p) {
+  poly.map(function (shp, i) {
+  console.log("Outline " + i.toString());
+  shp.map(function (seg) {console.log(p(seg));});
+  });
+  }
+  
+  function logCoords(feat, p) {
+  console.log(feat.geometry.type);
+  if (feat.geometry.type === 'Polygon') {
+  logPCoords(feat.geometry.coordinates, p);
+  } else if (feat.geometry.type === 'MultiPolygon') {
+  feat.geometry.coordinates.map(function (d, i) {
+  console.log("Poly " + i.toString()); logPCoords(d, p);
+  });
+  }
+  }
+
+  function inBounds(chk, bnd) {
+      return chk[0] <= bnd[0] && chk[0] >= 0 && chk[1] <= bnd[1] && chk[1] >= 0;
+  }
+
+  function interpolate(pt1, pt2, bnd) {
+      if (pt1[0] < 0) {
+	  pt1[0] = 0;
+      } else if (pt1[0] > bnd[0]) {
+	  pt1[1] += (pt2[1] - pt1[1]) * (bnd[0] - pt1[0]) / (pt2[0] - pt1[0]);
+	  pt1[0] = bnd[0];
+      }
+      if (pt1[1] < 0) {
+	  pt1[0] += (pt2[0] - pt1[0]) * (0 - pt2[1]) / (pt2[1] - pt1[1]);
+	  pt1[1] = 0;
+      } else if (pt1[1] > bnd[1]) {
+	  pt1[0] += (pt2[1] - pt1[1]) * (bnd[1] - pt1[1]) / (pt2[1] - pt1[1]);
+	  pt1[1] = bnd[1];
+      }
+      return pt1;
+  }
+	
+  function make1Path(poly, pr, bnd) {
+      let pstr = '';
+      let lastin = [];
+      let lastout = [];
+      let i, j;
+      poly.map(function (ring) {
+	  let started = false;
+	  let psubstr = '';
+	  ring.map(function (coord) {
+	      let pcoords = pr(coord);
+	      if (inBounds(pcoords, bnd)) {
+		  if (lastout.length > 0) {
+		      let intercoord = interpolate(lastout, pcoords);
+		      if (psubstr.length > 0) {
+			  psubstr += " L";
+		      } else {
+			  psubstr = "M";
+		      }
+		      psubstr += " L" + intercoord[0].toString() + "," +
+			  intercoord[1].toString();
+		  }
+		  if (psubstr.length > 0) {
+		      psubstr += " L" + pcoords[0].toString() +
+			  "," + pcoords[1].toString();
+		  } else {
+		      started = true;
+		      psubstr = "M" + pcoords[0].toString() + "," +
+			  pcoords[1].toString();
+		  }
+		  lastin = pcoords;
+		  lastout = [];
+	      } else {
+		  lastout = pcoords;
+		  if (lastin.length > 0) {
+		      pcoords = interpolate(pcoords, lastin, bnd);
+		      if (psubstr.length > 0) {
+			  psubstr += " L";
+		      } else {
+			  psubstr = "M";
+		      }
+		      psubstr += pcoords[0].toString() + ",", +
+			  pcoords[1].toString();
+		  }
+		  lastin = [];
+	      }
+	      });
+	      if (psubstr.length > 0) {
+		  if (pstr.length > 0) {
+		      pstr += " " + psubstr;
+		  } else {
+		      pstr = psubstr;
+		  }
+		  pstr += "z";
+	      }
+	  });
+      return pstr;
+  }
+  function makePath(feat, pr, bnd) {
+  // Manually produces a path from a features geometry
+  // using projection pr and bounding box bnd
+    let geom = feat.geometry.coordinates;
+    let pstr = "";
+    if (feat.geometry.type === 'Polygon') {
+      pstr = make1Path(geom, pr, bnd);
+    } else if (feat.geometry.type === 'MultiPolygon') {
+      let started = false;
+      // Can't use map because of comparison with other elements in array
+      let i;
+      for (i = 0; i < geom.length; i++) {
+        let psubstr = make1Path(geom[i], pr, bnd);
+        if (psubstr.length > 0) {
+          if (started) {
+            pstr += " ";
+          }
+	  started = true;
+          pstr += psubstr;
+        }
+      }
+    }
+    return pstr;
+  }
+  function generateMap(dat) {
   let bbox = dat[0];
   let geodat = dat[1];
   let mspc = d3.select("#mapspace");
@@ -50,14 +171,18 @@ function generateMap(dat) {
 implemented, so must set scale/position manually
     .preclip(d3.geoClipRectangle(bbox[0], bbox[1], bbox[2], bbox[3]))
     .fitSize([canvSz[0], canvSz[1]], geodat); */
+  logCoords(geodat.features[0], proj);
   let path = d3.geoPath()
     .projection(proj);
   let color = colorRng.domain(colorDom); console.log('projection');
+  //let pathlist = makePath(geodat.features, proj, color);
+  //console.log( makePath(geodat.features[0], proj, canvSz));
   grp.selectAll(".geo")
     .data(geodat.features)
     .enter().append("path")
       .attr("class", "geo")
-      .attr("d", path)
+      //.attr("d", path)
+      .attr("d", d => (makePath(d, proj, canvSz)))
       .style("stroke", "grey")
       .style("fill", d => color(d.properties.numdogs)); console.log('done');
   if (dat.length === 3) {
