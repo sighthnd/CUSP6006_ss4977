@@ -75,7 +75,17 @@
 	  let started = false;
 	  let psubstr = '';
 	  ring.map(function (coord) {
-	      let pcoords = pr(coord);
+		  let pcoords = pr(coord);
+		  if (psubstr.length > 0) {
+		      psubstr += " L" + pcoords[0].toString() +
+			  "," + pcoords[1].toString();
+		  } else {
+		      started = true;
+		      psubstr = "M" + pcoords[0].toString() + "," +
+			  pcoords[1].toString();
+		  }
+		  
+		  /*	      let pcoords = pr(coord);
 	      if (inBounds(pcoords, bnd)) {
 		  if (lastout.length > 0) {
 		      let intercoord = interpolate(lastout, pcoords);
@@ -86,14 +96,6 @@
 		      }
 		      psubstr += " L" + intercoord[0].toString() + "," +
 			  intercoord[1].toString();
-		  }
-		  if (psubstr.length > 0) {
-		      psubstr += " L" + pcoords[0].toString() +
-			  "," + pcoords[1].toString();
-		  } else {
-		      started = true;
-		      psubstr = "M" + pcoords[0].toString() + "," +
-			  pcoords[1].toString();
 		  }
 		  lastin = pcoords;
 		  lastout = [];
@@ -110,7 +112,7 @@
 			  pcoords[1].toString();
 		  }
 		  lastin = [];
-	      }
+		  }*/
 	      });
 	      if (psubstr.length > 0) {
 		  if (pstr.length > 0) {
@@ -148,32 +150,33 @@
     return pstr;
   }
   function generateMap(dat) {
-  let bbox = dat[0];
-  let geodat = dat[1];
-  let mspc = d3.select("#mapspace");
-  d3.selectAll(".geo").remove();
-  d3.selectAll(".rect").remove();
-
-  let grp = mspc.append("g")
-    .attr("transform", "translate(150, 0)");
-  let canvSz = [600, 600];
-  grp.append("rect")
-    .attr("x", 0).attr("y", 0)
-    .attr("width", canvSz[0])
-    .attr("height", canvSz[1])
-    .attr("fill", "none").attr("stroke", "black"); console.log('map box');
-  let proj = d3.geoMercator()
-    .scale(50 * canvSz[0] / (bbox[2] - bbox[0]))
-    .translate([canvSz[0]/2, canvSz[1]/2])
-    .center([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
-    .clipExtent([0, 0], [canvSz[0], canvSz[1]]);
+      let bbox = dat[0];
+      let geodat = dat[1];
+      let mspc = d3.select("#mapspace");
+      d3.selectAll(".geo").remove();
+      d3.selectAll(".rect").remove();
+      
+      let grp = mspc.append("g")
+	  .attr("transform", "translate(150, 0)");
+      let canvSz = [600, 600];
+      grp.append("rect")
+	  .attr("x", 0).attr("y", 0)
+	  .attr("width", canvSz[0])
+	  .attr("height", canvSz[1])
+	  .attr("fill", "none").attr("stroke", "black");
+      let proj = d3.geoMercator()
+	  .scale(50 * canvSz[0] / (bbox[2] - bbox[0]))
+	  .translate([canvSz[0]/2, canvSz[1]/2])
+	  .center([(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2])
+	  .clipExtent([0, 0], [canvSz[0], canvSz[1]]);
 /* I wish I could use these, but the functionality doesn't seem to be
 implemented, so must set scale/position manually
     .preclip(d3.geoClipRectangle(bbox[0], bbox[1], bbox[2], bbox[3]))
     .fitSize([canvSz[0], canvSz[1]], geodat); */
-  logCoords(geodat.features[0], proj);
+  //logCoords(geodat.features[0], proj);
   let path = d3.geoPath()
     .projection(proj);
+  //console.log(path(geodat.features[0]).replace(/LNaN,NaN/g, '')); console.log(makePath(geodat.features[0], proj, canvSz));
   let color = colorRng.domain(colorDom); console.log('projection');
   //let pathlist = makePath(geodat.features, proj, color);
   //console.log( makePath(geodat.features[0], proj, canvSz));
@@ -182,15 +185,16 @@ implemented, so must set scale/position manually
     .enter().append("path")
       .attr("class", "geo")
       //.attr("d", path)
-      .attr("d", d => (makePath(d, proj, canvSz)))
+      //.attr("d", d => (makePath(d, proj, canvSz)))
+      .attr("d", d => (path(d).replace(/LNaN,NaN/g, '')))
       .style("stroke", "grey")
-      .style("fill", d => color(d.properties.numdogs)); console.log('done');
+      .style("fill", d => color(d.properties.numdogs));
   if (dat.length === 3) {
     grp.selectAll(".geo")
       .data(dat[2].features)
       .enter().append("path")
         .attr("class", "geo")
-        .attr("d", path)
+        .attr("d", d => (makePath(d, proj, canvSz)))
         .style("stroke", "red")
         .style("fill", "none");
   }
@@ -206,7 +210,7 @@ implemented, so must set scale/position manually
         geoType: 'nta',
         borough: 'full',
         boroughSub: 'full',
-        showTracts: 'no'
+        showTracts: 'No'
       };
       this.handleChange = this.handleChange.bind(this);
       this.handleSubmit = this.handleSubmit.bind(this);
@@ -214,6 +218,7 @@ implemented, so must set scale/position manually
       this.actSubarea = this.actSubarea.bind(this);
       this.toggleTracts = this.toggleTracts.bind(this);
       this.initSub = this.initSub.bind(this);
+      this.setTracts = this.setTracts.bind(this);
     }
 
   handleChange(event) {
@@ -270,20 +275,29 @@ event.preventDefault();
   actSubarea(event) {
     this.handleChange();
     this.setState({"boroughSub": event.target.value});
-    this.toggleTracts(event);
+    let cont = document.getElementById("showTracts");
+    if (event.target.value === "full") {
+	cont.disabled = true;
+    } else {
+	cont.disabled = false;
+    }
   }
   
   toggleTracts(event) {
   //this.handleChange();
-    let cont = document.getElementById("selTracts");
+    let cont = document.getElementById("showTracts");
     if (this.state.boroughSub === "full") {
       cont.disabled = true;
     } else {
       cont.disabled = false;
     }
-    this.setState({["tractson"]: "no"});
+    this.setState({["showTracts"]: "No"});
   }
 
+  setTracts(event) {
+      this.setState({['showTracts']: event.target.value});
+  }
+  
   initBor(event) {
   //    this.handleChange();
     this.setState({["initBor"]: event.target.value});
@@ -331,11 +345,11 @@ event.preventDefault();
 	  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
 	  Show Tracts &nbsp;
 	  <select
-	     name="tractson" disabled="true" id="selTracts"
-	     value={this.state.tractson}
-	     onChange={this.handleChange}>
-	    <option value="tractno">No</option>
-	    <option value="tractyes">Yes</option>
+	     name="showTracts" disabled="true" id="showTracts"
+	     value={this.state.showTracts}
+	     onChange={this.setTracts}>
+	    <option value="No">No</option>
+	    <option value="Yes">Yes</option>
 	  </select>
           &nbsp; &nbsp; &nbsp; &nbsp;
         </label>
