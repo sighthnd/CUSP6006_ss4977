@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import geopandas as gp
 import numpy as np
+from shapely import geometry
 
 comms = pd.read_csv("CommDists.csv")
 comms = comms[comms.DistrictNumber < 20]
@@ -21,22 +22,6 @@ for geo in ['NTA','Community','Borough', 'Tract']:
     else:
         dfs[geo] = gp.GeoDataFrame.from_file(fname)
     maxNumdogs[geo] = dfs[geo]['numdogs'].max()
-
-def get_res(size):
-    if size > 50000:
-        return 800
-    elif size > 25000:
-        return 400
-    elif size > 15000:
-        return 200
-    elif size > 8000:
-        return 100
-    elif size > 4000:
-        return 50
-    elif size > 2000:
-        return 20
-    else:
-        return 10
 
 def get_nres(df):
     size = len(df.geometry.to_json())
@@ -69,13 +54,15 @@ def selectHoodByName(hood):
     df_sel = dfs['NTA'][dfs['NTA']['ntaname'] == hood]
     minx = df_sel.minx.min()
     miny = df_sel.miny.min()
-    maxx = df_sel.maxy.max()
+    maxx = df_sel.maxx.max()
     maxy = df_sel.maxy.max()
+    print minx, miny, maxx, maxy
     zout = 0.2
     minx -= zout * (maxx - minx)
     maxx += zout * (maxx - minx)
     miny -= zout * (maxy - miny)
     maxy += zout * (maxy - miny)
+    print minx, miny, maxx, maxy
     xsize = maxx - minx
     ysize = maxy - miny
     size = np.max([xsize, ysize])
@@ -85,11 +72,23 @@ def selectHoodByName(hood):
     else:
         minx -= (ysize - xsize) / 2
         maxx += (ysize - xsize) / 2
-    df_sel = selectDfByExt(dfs['NTA'], minx, minx, maxx, maxy)
+    print minx, miny, maxx, maxy
+    df_sel = selectDfByExt(dfs['NTA'], minx, miny, maxx, maxy)
+    print minx, miny, maxx, maxy
+    #df_sel = clipDfExt('NTA', [minx, miny, maxx, maxy])
     res = get_nres(df_sel)
     if res > 0:
         df_sel.geometry = df_sel.geometry.simplify(res)
     return df_sel, [minx, miny, maxx, maxy]
+
+def clipDfExt(aType, bbox):
+    pList = [geometry.Point(bbox[int(abs(1.5 - i))],
+                            bbox[int(i / 2)]) for i in range(4)]
+    poly = geometry.Polygon([p.x, p.y] for p in pList)
+    clipExt = gp.GeoSeries(poly)
+    clipFr = dfs[aType][['geometry','id']].head(1)
+    clipFr.geometry = clipExt
+    return gp.overlay(dfs[aType], clipFr, how='intersection')
 
 def selectHoodByExt(minx, miny, maxx, maxy):
     xsize = maxx - minx
@@ -118,3 +117,11 @@ def getHoods():
     resol = get_nres(ret)
     ret.geometry = dfs['NTA'].geometry.simplify(resol)
     return ret, [minx, miny, maxx, maxy]
+
+def selectTractsByExt(bbox):
+    #df_sel = clipDfExt('Tract', bbox)
+    df_sel = selectDfByExt(dfs['Tract'], bbox[0], bbox[1], bbox[2], bbox[3])
+    res = get_nres(df_sel)
+    if res > 0:
+        df_sel.geometry = df_sel.geometry.simplify(res)
+    return df_sel
