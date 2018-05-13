@@ -11,6 +11,8 @@ resp_heads = {'Cache-Control': 'no-cache',
 @app.route('/makemap/<geotype>/<borough>/<subarea>/<tracts>')
 def serve(geotype, borough, subarea, tracts):
     answering = 0
+    borough = borough.replace('%20', ' ')
+    subarea = subarea.replace('%20', ' ')
     if geotype == 'borough':
         pass
     elif geotype == 'comms':
@@ -36,15 +38,19 @@ def serve(geotype, borough, subarea, tracts):
                 territory, bbox = dog.selectBorough(borough)
                 territory = dog.selectHoodByExt(bbox[0], bbox[1],
                                                 bbox[2], bbox[3])
+                #territory = dog.clipDfExt('NTA', bbox)
                 response = "[{},{}]".format(json.dumps(bbox),
                                             territory.to_json())
-                response = territory.to_json()
             else:
-                if tracts == 'yes':
-                    pass
+                territory, bbox = dog.selectHoodByName(subarea)
+                if tracts == 'Yes':
+                    answering = 1
+                    tracts = dog.selectTractsByExt(bbox)
+                    response = "[{},{},{}]".format(json.dumps(bbox),
+                                                   tracts.to_json(),
+                                                   territory.to_json())
                 else:
                     answering = 1
-                    territory, bbox = dog.selectHoodByName(subarea)
                     response = "[{},{}]".format(json.dumps(bbox),
                                                 territory.to_json())
     if answering == 1:
