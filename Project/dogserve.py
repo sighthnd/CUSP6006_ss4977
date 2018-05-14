@@ -43,6 +43,8 @@ def serve(geotype, borough, subarea, tracts):
                                             territory.to_json())
             else:
                 territory, bbox = dog.selectHoodByName(subarea)
+                territory = dog.selectHoodByExt(bbox[0], bbox[1],
+                                                bbox[2], bbox[3])
                 if tracts == 'Yes':
                     answering = 1
                     tracts = dog.selectTractsByExt(bbox)
