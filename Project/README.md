@@ -41,13 +41,23 @@ Choropleth map of selected geographic layers showing number of dogs licensed in 
 * Select either all of Manhattan or one Manhattan neighborhood
 * Possibly implement tracts option
 
+#### As completed
+* Implemented tracts option
+* Allow for selection of full city or one borough
+* Restricted to units of neighborhoods
+* Can select individual neighborhood if a single borough is selected
+
 ## Description
 Uses geographic marks encoded by color with darker blues indicating
 higher numbers of dogs in the unit. Position on a 2-D suface is the
 simplest way to convey location and luminance conveys the measured
 feature as each location.
 
+An alternative would be to shade on density possibly adding a dot to
+indicate total population.
+
 ## Outcome
-The interface works for two of the items so far. I have been able to get
-something in the way of a map out of it, but there is something unexplained
-that is complicating the full display of the map.
+The interface works for select borough, neighborhood and
+whether or not to show tracts. 
+Finally got clipping to work right. Need to fix shading when
+toggling between tracts on and off.
